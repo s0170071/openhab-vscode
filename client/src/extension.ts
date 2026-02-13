@@ -147,7 +147,8 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
             ncp.copy(query.UID || query.uid)))
 
 
-        disposables.push(vscode.languages.registerHoverProvider({ language: 'openhab', scheme: 'file'}, {
+        disposables.push(vscode.languages.registerHoverProvider(
+            [{ language: 'openhab', scheme: 'file'}, { language: 'javascript', scheme: 'file'}], {
 
                 provideHover(document, position, token){
 
@@ -169,7 +170,6 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
                     return ohHoverProvider.getHover(hoveredText, hoveredLine)
                 }
             })
-
         )
 
         // Listen for document save events, to update the cached items
