@@ -155,7 +155,9 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
                     let docLine = document.lineAt(position.line)
                     let hoveredLine = docLine.text.slice(docLine.firstNonWhitespaceCharacterIndex)
 
-                    let hoveredRange = document.getWordRangeAtPosition(position)
+                    // Try to match key="value" pattern first, then fall back to plain word
+                    let hoveredRange = document.getWordRangeAtPosition(position, /\w+=(?:"[^"]*"|'[^']*'|\S+)/)
+                        || document.getWordRangeAtPosition(position)
                     let hoveredText = document.getText(hoveredRange)
 
                     // let matchresult = hoveredText.match(/(\w+){1}/gm)
