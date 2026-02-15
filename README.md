@@ -24,7 +24,22 @@ The extension is designed with openHAB 2.x in mind - most snippets and design pa
 - Quick openHAB console access
 - Add Items to Sitemap with one click
 - Get live Item states while hovering over item names in the Editor
+- Hover tooltips in JavaScript automation files (`.js`), not just DSL files
+- Extract item states from log lines: hovering a variable like `geschlossenPrev` shows its value when found in `events.log` with the format `geschlossenPrev="true"`
 - Show human readable `Thread::sleep()` times while hovering
+
+### Log Hover Configuration
+
+The extension searches openHAB log files to provide hover tooltips. Configure the paths in VS Code settings:
+
+| Setting | Default | Description |
+|---|---|---|
+| `openhab.log.eventsLogPath` | `/opt/openhab/userdata/logs/events.log` | Path to the openHAB events log |
+| `openhab.log.openhabLogPath` | `/opt/openhab/userdata/logs/openhab.log` | Path to the openHAB application log |
+
+### Download
+
+- [openhab-1.0.1.vsix](https://github.com/s0170071/openhab-vscode/raw/main/openhab-1.0.1.vsix) — Install via `code --install-extension openhab-1.0.1.vsix`
 
 ![openHAB2 code snippets](docs/images/openhab-demo.gif)
 
