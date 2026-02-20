@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Hover tooltips for JavaScript files**: Item hover tooltips (state lookups from the REST API and events.log) now work in `.js` automation files, not just `.items` and `.rules` files.
+- **Hover tooltips for `.items` files**: Hovering over item names in `.items` configuration files also provides live state information from the REST API and log files.
+- **Hover tooltips for sitemap files**: Item name hover tooltips work in `.sitemap` files, including `item=<name>` references on widget lines.
 - **Key-value state extraction from log lines**: When hovering over a variable name found in events.log or openhab.log, the extension extracts its value from log lines with the format `someitem="state"` and displays just the state in the tooltip (e.g. `eventslog: true`).
 
 ### Removed
