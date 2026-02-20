@@ -148,7 +148,7 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
 
 
         disposables.push(vscode.languages.registerHoverProvider(
-            [{ language: 'openhab', scheme: 'file'}, { language: 'javascript', scheme: 'file'}], {
+            [{ language: 'openhab', scheme: 'file'}, { language: 'javascript', scheme: 'file'}, { pattern: '**/*.sitemap', scheme: 'file'}], {
 
                 provideHover(document, position, token){
 
