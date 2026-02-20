@@ -14,11 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hover tooltips for sitemap files**: Item name hover tooltips work in `.sitemap` files, including `item=<name>` references on widget lines.
 - **Key-value state extraction from log lines**: When hovering over a variable name found in events.log or openhab.log, the extension extracts its value from log lines with the format `someitem="state"` and displays just the state in the tooltip (e.g. `eventslog: true`).
 
-### Removed
-
-- Removed Frontail integration (frontail uses Socket.IO, not a REST API, so log fetching never worked reliably).
-- Removed `openhab.log.frontailUrl` configuration option.
-
 ### Configuration
 
 Log file paths can be configured via VS Code settings:
