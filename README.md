@@ -5,7 +5,9 @@
 [![Visual Studio Marketplace Downloads)][MarketplaceDownloadBadgeImage]][MarketplaceDownloadBadgeImageLink]
 [![Open VSX Downloads][openVsxDownloadBadgeImage]][openVsxDownloadBadgeImageLink]
 
-[openHAB](http://www.openhab.org) is a vendor and techology agnostic open source automation software for your home. This [Visual Studio Code](https://code.visualstudio.com) extension allows you to work with openHAB configuration files (like `*.items`, `*.rules`, `*.sitemap` and `*.script`) thanks to the syntax highlighting, code snippets and integrated search.
+[openHAB](http://www.openhab.org) is a vendor and techology agnostic open source automation software for your home. This [Visual Studio Code](https://code.visualstudio.com) extension allows you to work with openHAB configuration files — including `*.items`, `*.rules`, `*.sitemap`, `*.script`, and **JavaScript automation files** (`*.js`) — thanks to syntax highlighting, code snippets, and integrated search.
+
+> **Note:** The extension works with DSL files (`*.items`, `*.rules`, `*.sitemap`), JavaScript automation files (`*.js`), and sitemap files. When you hover over an item or variable name, the extension looks it up against the openHAB REST API and also tries to capture its current value from `events.log` and `openhab.log`. A `.vsix` installer for the latest build is available in the [Download](#download) section below.
 
 The extension is designed with openHAB 2.x in mind - most snippets and design patterns will work in openHAB 2.x
 
