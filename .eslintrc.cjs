@@ -8,7 +8,7 @@ module.exports = {
     parserOptions: {
         sourceType: 'module',
     },
-    plugins: ['@typescript-eslint'],
+    plugins: ['@typescript-eslint', 'unicorn'],
     rules: {
         'no-restricted-syntax': [
             'warn',
@@ -18,6 +18,7 @@ module.exports = {
             },
         ],
         'no-redeclare': 'error',
+        'unicorn/prefer-early-return': 'error',
     },
     overrides: [
         {

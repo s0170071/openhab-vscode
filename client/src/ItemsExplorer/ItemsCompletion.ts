@@ -22,9 +22,10 @@ import { OH_CONFIG_PARAMETERS } from '../Utils/types'
  */
 export class ItemsCompletion implements CompletionItemProvider {
     constructor() {
-        if (!this.model) {
-            this.model = new ItemsModel()
+        if (this.model) {
+            return
         }
+        this.model = new ItemsModel()
     }
 
     private model: ItemsModel
@@ -35,23 +36,23 @@ export class ItemsCompletion implements CompletionItemProvider {
         token: CancellationToken
     ): Thenable<CompletionItem[]> {
         return new Promise((resolve, reject) => {
-            if (ConfigManager.get(OH_CONFIG_PARAMETERS.useRestApi)) {
-                this.model.completions.then((completions) => {
-                    resolve(
-                        completions.map((item: Item) => {
-                            let completionItem = _.assign(new CompletionItem(item.name), {
-                                kind: CompletionItemKind.Variable,
-                                detail: item.type,
-                                documentation: this.getDocumentation(item),
-                            })
-
-                            return completionItem
-                        })
-                    )
-                })
-            } else {
+            if (!ConfigManager.get(OH_CONFIG_PARAMETERS.useRestApi)) {
                 reject()
+                return
             }
+            this.model.completions.then((completions) => {
+                resolve(
+                    completions.map((item: Item) => {
+                        let completionItem = _.assign(new CompletionItem(item.name), {
+                            kind: CompletionItemKind.Variable,
+                            detail: item.type,
+                            documentation: this.getDocumentation(item),
+                        })
+
+                        return completionItem
+                    })
+                )
+            })
         })
     }
 

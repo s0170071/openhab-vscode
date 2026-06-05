@@ -11,53 +11,52 @@ jest.mock('eventsource', () => {
     return es
 })
 
-jest.mock('axios', () => {
-    const get = jest.fn(() => {
-        const self = get
-        if (self.__shouldError) {
-            return Promise.reject(self.__error)
-        }
-        return Promise.resolve({
-            data: self.__items,
-        })
+const fetchMock = jest.fn(() => {
+    const self = fetchMock
+    if (self.__shouldError) {
+        return Promise.reject(self.__error)
+    }
+    return Promise.resolve({
+        ok: true,
+        json: jest.fn(() => Promise.resolve(self.__items)),
     })
-
-    get.__setError = (err) => {
-        get.__shouldError = true
-        get.__error = err
-    }
-
-    get.__setItems = (items) => {
-        get.__shouldError = false
-        get.__items = items
-    }
-
-    get.__clearMock = () => {
-        get.__shouldError = false
-        get.__error = undefined
-        get.__items = undefined
-    }
-
-    return {
-        get,
-    }
 })
 
+fetchMock.__setError = (err) => {
+    fetchMock.__shouldError = true
+    fetchMock.__error = err
+}
+
+fetchMock.__setItems = (items) => {
+    fetchMock.__shouldError = false
+    fetchMock.__items = items
+}
+
+fetchMock.__clearMock = () => {
+    fetchMock.__shouldError = false
+    fetchMock.__error = undefined
+    fetchMock.__items = undefined
+}
+
+fetchMock.__clearMock()
+
+global.fetch = fetchMock
+
 const ItemCompletionProvider = require('../../../src/ItemCompletion/ItemCompletionProvider')
-const axios = require('axios')
 const Item = require('../../../src/ItemCompletion/Item')
 
 beforeEach(() => {
     jest.clearAllMocks()
 
-    axios.get.__clearMock()
+    global.fetch = fetchMock
+    fetchMock.__clearMock()
 })
 
 describe('Tests for item completion', () => {
     test('.getItemsFromRestApi where request has error', () => {
         const completions = new ItemCompletionProvider()
 
-        axios.get.__setError(new Error('Error'))
+        fetchMock.__setError(new Error('Error'))
 
         return completions
             .getItemsFromRestApi('localhost', 1234)
@@ -66,8 +65,8 @@ describe('Tests for item completion', () => {
                 expect(1).toBe(2)
             })
             .catch((error) => {
-                expect(axios.get).toHaveBeenCalledTimes(1)
-                expect(axios.get).toHaveBeenCalledWith('http://localhost:1234/rest/items/')
+                expect(fetchMock).toHaveBeenCalledTimes(1)
+                expect(fetchMock).toHaveBeenCalledWith('http://localhost:1234/rest/items/')
                 expect(error).toEqual(new Error('Error'))
             })
     })
@@ -76,7 +75,7 @@ describe('Tests for item completion', () => {
         const completions = new ItemCompletionProvider()
 
         // invalid response
-        axios.get.__setItems({ items: false })
+        fetchMock.__setItems({ items: false })
 
         return completions
             .getItemsFromRestApi('localhost', 1234)
@@ -85,8 +84,8 @@ describe('Tests for item completion', () => {
                 expect(1).toBe(2)
             })
             .catch((err) => {
-                expect(axios.get).toHaveBeenCalledTimes(1)
-                expect(axios.get).toHaveBeenCalledWith('http://localhost:1234/rest/items/')
+                expect(fetchMock).toHaveBeenCalledTimes(1)
+                expect(fetchMock).toHaveBeenCalledWith('http://localhost:1234/rest/items/')
                 expect(err).toEqual(new Error('Could not get valid data from REST API'))
             })
     })
@@ -96,11 +95,11 @@ describe('Tests for item completion', () => {
         completions.items = new Map()
 
         // response with empty array (no items on openhab)
-        axios.get.__setItems([])
+        fetchMock.__setItems([])
 
         return completions.getItemsFromRestApi('localhost', 1234).then(() => {
-            expect(axios.get).toHaveBeenCalledTimes(1)
-            expect(axios.get).toHaveBeenCalledWith('http://localhost:1234/rest/items/')
+            expect(fetchMock).toHaveBeenCalledTimes(1)
+            expect(fetchMock).toHaveBeenCalledWith('http://localhost:1234/rest/items/')
             expect(completions.items.size).toBe(0)
         })
     })
@@ -109,7 +108,7 @@ describe('Tests for item completion', () => {
         const completions = new ItemCompletionProvider()
         completions.items = new Map()
 
-        axios.get.__setItems([
+        fetchMock.__setItems([
             {
                 members: [],
                 link: 'http://demo.openhab.org:8080/rest/items/Weather_Chart',
@@ -147,8 +146,8 @@ describe('Tests for item completion', () => {
         return completions
             .getItemsFromRestApi('localhost', 1234)
             .then(() => {
-                expect(axios.get).toHaveBeenCalledTimes(1)
-                expect(axios.get).toHaveBeenCalledWith('http://localhost:1234/rest/items/')
+                expect(fetchMock).toHaveBeenCalledTimes(1)
+                expect(fetchMock).toHaveBeenCalledWith('http://localhost:1234/rest/items/')
                 expect(completions.items.size).toBe(3)
             })
             .catch(() => {
@@ -404,12 +403,11 @@ describe('Tests for item completion', () => {
         expect(completion.items.size).toBe(0)
     })
 
-    // Temporarily skip these start/event tests until the server-side request mock is fixed.
-    // Tracked in: https://github.com/openhab/openhab-vscode/issues/335
-    test.skip('.start() is successful', () => {
+    // Fixes: https://github.com/openhab/openhab-vscode/issues/335
+    test('.start() is successful', () => {
         const completion = new ItemCompletionProvider()
 
-        request.__setItems([
+        fetchMock.__setItems([
             {
                 members: [],
                 link: 'http://demo.openhab.org:8080/rest/items/Weather_Chart',
@@ -452,10 +450,10 @@ describe('Tests for item completion', () => {
         })
     })
 
-    test.skip('.start() is sucessful, empty item array', () => {
+    test('.start() is successful, empty item array', () => {
         const completion = new ItemCompletionProvider()
 
-        request.__setItems([])
+        fetchMock.__setItems([])
         return completion.start('localhost', 1234).then((res) => {
             expect(res).toBeUndefined()
             expect(completion.status).toEqual('connecting')
@@ -464,10 +462,10 @@ describe('Tests for item completion', () => {
         })
     })
 
-    test.skip('.start() is not sucessful, no valid item array', () => {
+    test('.start() is not successful, no valid item array', () => {
         const completion = new ItemCompletionProvider()
 
-        request.__setItems()
+        fetchMock.__setItems(undefined)
         return completion.start('localhost', 1234).then((res) => {
             expect(res).toEqual(new Error('Could not get valid data from REST API'))
             expect(completion.status).toEqual('stopped')
@@ -476,10 +474,10 @@ describe('Tests for item completion', () => {
         })
     })
 
-    test.skip('.start() is not sucessful, error in request', () => {
+    test('.start() is not successful, error in request', () => {
         const completion = new ItemCompletionProvider()
 
-        request.__setError(new Error('mocked error'))
+        fetchMock.__setError(new Error('mocked error'))
         return completion.start('localhost', 1234).then((res) => {
             expect(res).toEqual(new Error('mocked error'))
             expect(completion.status).toEqual('stopped')
@@ -488,10 +486,10 @@ describe('Tests for item completion', () => {
         })
     })
 
-    test.skip('.event() is called on event', () => {
+    test('.event() is called on event', () => {
         const completion = new ItemCompletionProvider()
 
-        request.__setItems([
+        fetchMock.__setItems([
             {
                 members: [],
                 link: 'http://demo.openhab.org:8080/rest/items/Weather_Chart',
