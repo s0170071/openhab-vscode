@@ -42,10 +42,6 @@
     "[markdown]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
-    "cSpell.words": [
-        "Brucksch",
-        "eventsource",
-        "openhab"
-    ],
+    "cSpell.words": ["Brucksch", "eventsource", "openhab"],
     "unit-pylot.runTestsInBackground": false
 }

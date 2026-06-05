@@ -57,7 +57,6 @@ When reviewing code in this repository, check for:
 
 ```
 
-
 ## Creating Cross-Fork Pull Requests
 
 This repo's branches follow the pattern `pgfeller/issue<N>` (branch name contains a slash).
