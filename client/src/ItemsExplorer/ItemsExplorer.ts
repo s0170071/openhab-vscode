@@ -10,6 +10,7 @@ import * as path from 'path'
  *
  * @author Kuba Wolanin - Initial contribution
  * @author Patrik Gfeller - Fix TS2322: wrap iconPath strings with Uri.file()
+ * @author Patrik Gfeller - Filter NULL and UNDEF states from tree label (#362)
  */
 export class ItemsExplorer implements TreeDataProvider<Item> {
     private _onDidChangeTreeData: EventEmitter<any> = new EventEmitter<any>()
@@ -28,8 +29,9 @@ export class ItemsExplorer implements TreeDataProvider<Item> {
     }
 
     public getTreeItem(item: Item): TreeItem {
+        const displayState = item.state && item.state !== 'NULL' && item.state !== 'UNDEF' ? item.state : undefined
         return {
-            label: (item.label || item.name) + (item.state ? ' (' + item.state + ')' : ''),
+            label: (item.label || item.name) + (displayState ? ` (${displayState})` : ''),
             collapsibleState: item.isGroup ? TreeItemCollapsibleState.Collapsed : TreeItemCollapsibleState.None,
             contextValue: this.getViewItem(item),
             iconPath: {
@@ -46,9 +48,9 @@ export class ItemsExplorer implements TreeDataProvider<Item> {
      *
      * @param item Item
      */
-    private getViewItem(item): string {
-        let type = item.isGroup ? 'Group' : 'Item'
-        return item.state ? type : 'stateless' + type
+    private getViewItem(item: Item): string {
+        const type = item.isGroup ? 'Group' : 'Item'
+        return item.state ? type : `stateless${type}`
     }
 
     /**
@@ -60,7 +62,7 @@ export class ItemsExplorer implements TreeDataProvider<Item> {
      * @param name icon's filename
      */
     private getIcon(shade: string, name: string) {
-        return path.join(this.extensionpath, 'resources', shade, name.toLowerCase() + '.svg')
+        return path.join(this.extensionpath, 'resources', shade, `${name.toLowerCase()}.svg`)
     }
 
     public getChildren(item?: Item): Item[] | Thenable<Item[]> {
