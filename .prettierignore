@@ -15,6 +15,7 @@ serverJS/out/
 # Generated / vendored files — do not reformat
 meta/openhab.tmLanguage.json
 fileicons/openhab-icon-theme.json
+**/*/package-lock.json
 
 # Azure pipelines
 .azure-pipelines/
