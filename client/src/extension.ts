@@ -40,72 +40,74 @@ let ohStatusBarItem: vscode.StatusBarItem
  * @param context The extension context
  */
 async function init(disposables: vscode.Disposable[], context: vscode.ExtensionContext): Promise<void> {
-
     // Handle configuration changes
     ConfigManager.attachConfigChangeWatcher(context)
 
-    disposables.push(vscode.commands.registerCommand('openhab.basicUI', () => {
-        const editor = vscode.window.activeTextEditor
-        if (!editor) {
-            vscode.window.showInformationMessage('No editor is active')
-            return
-        }
-
-        const fileName = path.basename(editor.document.fileName)
-
-        // Open specific sitemap if a sitemap file is active
-        if (fileName.endsWith('sitemap')) {
-            const sitemap = fileName.split('.')[0]
-
-            utils.appendToOutput(`Attempting to open Sitemap "${sitemap}" in BasicUI.`)
-            return utils.openUI(
-                _extensionPath,
-                `/basicui/app?sitemap=${sitemap}`,
-                sitemap
-            )
-        }
-
-        // If there is only one user created sitemap open it directly, open sitemap list otherwise
-        utils.getSitemaps().then(sitemaps => {
-            const defaultName = sitemap => sitemap.name === '_default'
-            const defaultSitemap = sitemaps.find(defaultName)
-
-            if (sitemaps.length === 1) {
-                return utils.openUI(
-                    _extensionPath,
-                    `/basicui/app?sitemap=${sitemaps[0].name}`,
-                    sitemaps[0].name
-                )
+    disposables.push(
+        vscode.commands.registerCommand('openhab.basicUI', () => {
+            const editor = vscode.window.activeTextEditor
+            if (!editor) {
+                vscode.window.showInformationMessage('No editor is active')
+                return
             }
 
-            if (sitemaps.length === 2 && typeof defaultSitemap !== 'undefined') {
-                const index = sitemaps.indexOf(defaultName) === 0 ? 1 : 0
-                return utils.openUI(
-                    _extensionPath,
-                    `/basicui/app?sitemap=${sitemaps[index].name}`,
-                    sitemaps[index].name
-                )
+            const fileName = path.basename(editor.document.fileName)
+
+            // Open specific sitemap if a sitemap file is active
+            if (fileName.endsWith('sitemap')) {
+                const sitemap = fileName.split('.')[0]
+
+                utils.appendToOutput(`Attempting to open Sitemap "${sitemap}" in BasicUI.`)
+                return utils.openUI(_extensionPath, `/basicui/app?sitemap=${sitemap}`, sitemap)
             }
 
-            return utils.openUI(_extensionPath)
+            // If there is only one user created sitemap open it directly, open sitemap list otherwise
+            utils.getSitemaps().then((sitemaps) => {
+                const defaultName = (sitemap) => sitemap.name === '_default'
+                const defaultSitemap = sitemaps.find(defaultName)
+
+                if (sitemaps.length === 1) {
+                    return utils.openUI(_extensionPath, `/basicui/app?sitemap=${sitemaps[0].name}`, sitemaps[0].name)
+                }
+
+                if (sitemaps.length === 2 && typeof defaultSitemap !== 'undefined') {
+                    const index = sitemaps.indexOf(defaultName) === 0 ? 1 : 0
+                    return utils.openUI(
+                        _extensionPath,
+                        `/basicui/app?sitemap=${sitemaps[index].name}`,
+                        sitemaps[index].name
+                    )
+                }
+
+                return utils.openUI(_extensionPath)
+            })
         })
+    )
 
-    }))
+    disposables.push(
+        vscode.commands.registerCommand('openhab.searchCommunity', (phrase?) => {
+            const query: string = phrase || '%s'
+            utils.openBrowser(`https://community.openhab.org/search?q=${query}`)
+        })
+    )
 
-    disposables.push(vscode.commands.registerCommand('openhab.searchCommunity', (phrase?) => {
-        const query: string = phrase || '%s'
-        utils.openBrowser(`https://community.openhab.org/search?q=${query}`)
-    }))
+    disposables.push(
+        vscode.commands.registerCommand('openhab.openConsole', () => {
+            const command = (ConfigManager.get(OH_CONFIG_PARAMETERS.consoleCommand) as string).replace(
+                /%openhabhost%/g,
+                ConfigManager.get(OH_CONFIG_PARAMETERS.connection.host) as string
+            )
+            const terminal = vscode.window.createTerminal('openHAB')
+            terminal.sendText(command, true)
+            terminal.show(false)
+        })
+    )
 
-    disposables.push(vscode.commands.registerCommand('openhab.openConsole', () => {
-        const command = (ConfigManager.get(OH_CONFIG_PARAMETERS.consoleCommand) as string).replace(/%openhabhost%/g, (ConfigManager.get(OH_CONFIG_PARAMETERS.connection.host) as string))
-        const terminal = vscode.window.createTerminal('openHAB')
-        terminal.sendText(command, true)
-        terminal.show(false)
-    }))
-
-    disposables.push(vscode.commands.registerCommand('openhab.command.things.docs', (query: Thing) =>
-        utils.openBrowser(`https://www.openhab.org/addons/bindings/${query.binding}/`)))
+    disposables.push(
+        vscode.commands.registerCommand('openhab.command.things.docs', (query: Thing) =>
+            utils.openBrowser(`https://www.openhab.org/addons/bindings/${query.binding}/`)
+        )
+    )
 
     if (ConfigManager.get(OH_CONFIG_PARAMETERS.useRestApi) as boolean) {
         const itemsExplorer = new ItemsExplorer()
@@ -115,131 +117,159 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
 
         disposables.push(vscode.window.registerTreeDataProvider('openhabItems', itemsExplorer))
         disposables.push(vscode.window.registerTreeDataProvider('openhabThings', thingsExplorer))
-        disposables.push(vscode.commands.registerCommand('openhab.command.refreshEntry', () => {
-            itemsExplorer.refresh()
-            thingsExplorer.refresh()
-        }))
+        disposables.push(
+            vscode.commands.registerCommand('openhab.command.refreshEntry', () => {
+                itemsExplorer.refresh()
+                thingsExplorer.refresh()
+            })
+        )
 
-        disposables.push(vscode.commands.registerCommand('openhab.command.copyName', (query) => {
-            let text: string | undefined
-            if (typeof query === 'string') {
-                text = String(query)
-            } else if (query) {
-                // Prefer UID (things), then name (items), then label as fallback
-                if (query.UID || query.uid) {
-                    text = String(query.UID || query.uid)
-                } else if (query.name) {
-                    text = String(query.name)
-                } else if (query.label) {
-                    text = String(query.label)
+        disposables.push(
+            vscode.commands.registerCommand('openhab.command.copyName', (query) => {
+                let text: string | undefined
+                if (typeof query === 'string') {
+                    text = String(query)
+                } else if (query) {
+                    // Prefer UID (things), then name (items), then label as fallback
+                    if (query.UID || query.uid) {
+                        text = String(query.UID || query.uid)
+                    } else if (query.name) {
+                        text = String(query.name)
+                    } else if (query.label) {
+                        text = String(query.label)
+                    }
                 }
-            }
-            if (!text) {
-                vscode.window.showInformationMessage('Nothing selected to copy')
-                return
-            }
-            void Promise.resolve(vscode.env.clipboard.writeText(String(text))).catch(err => console.error('Failed to write to clipboard:', err))
-        }))
-
-        disposables.push(vscode.commands.registerCommand('openhab.command.items.copyState', (query: Item) => {
-            const state = query && query.state ? String(query.state) : undefined
-            if (!state) {
-                vscode.window.showInformationMessage('No state available to copy')
-                return
-            }
-            void Promise.resolve(vscode.env.clipboard.writeText(String(state))).catch(err => console.error('Failed to write to clipboard:', err))
-        }))
-
-        disposables.push(vscode.commands.registerCommand('openhab.command.items.copyLabel', (query: Item) => {
-            if (!query) {
-                vscode.window.showInformationMessage('No item selected to copy')
-                return
-            }
-            const label = query && query.label ? String(query.label) : ''
-            if (!label) {
-                vscode.window.showInformationMessage('No label available to copy')
-                return
-            }
-            void Promise.resolve(vscode.env.clipboard.writeText(String(label))).catch(err => console.error('Failed to write to clipboard:', err))
-        }))
-
-        disposables.push(vscode.commands.registerCommand('openhab.command.items.addRule', (query: Item) => {
-            const ruleProvider = new RuleProvider(query)
-            ruleProvider.addRule()
-        }))
-
-        disposables.push(vscode.commands.registerCommand('openhab.command.items.addToSitemap', (query: Item) => {
-            const sitemapProvider = new SitemapPartialProvider(query)
-            sitemapProvider.addToSitemap()
-        }))
-
-        disposables.push(vscode.commands.registerCommand('openhab.command.things.addItems', (query: Thing | Channel) => {
-            const itemsProvider = new ItemsProvider(query)
-            itemsProvider.addToItems()
-        }))
-
-        disposables.push(vscode.commands.registerCommand('openhab.command.things.copyUID', (query) => {
-            if (!query) {
-                vscode.window.showInformationMessage('No thing selected to copy')
-                return
-            }
-            let uid: string = ''
-            if (typeof query === 'string') {
-                uid = String(query)
-            } else if (query && (query.UID || query.uid)) {
-                uid = String(query.UID || query.uid)
-            }
-            if (!uid) {
-                vscode.window.showInformationMessage('No UID available to copy')
-                return
-            }
-            void Promise.resolve(vscode.env.clipboard.writeText(String(uid))).catch(err => console.error('Failed to write to clipboard:', err))
-        }))
-
-        disposables.push(vscode.commands.registerCommand('openhab.command.things.copyLabel', (query: Thing) => {
-            if (!query) {
-                vscode.window.showInformationMessage('No thing selected to copy')
-                return
-            }
-            const label = query && query.label ? String(query.label) : ''
-            if (!label) {
-                vscode.window.showInformationMessage('No label available to copy')
-                return
-            }
-            void Promise.resolve(vscode.env.clipboard.writeText(String(label))).catch(err => console.error('Failed to write to clipboard:', err))
-        }))
-
-
-        disposables.push(vscode.languages.registerHoverProvider({ language: 'openhab', scheme: 'file' }, {
-
-            provideHover(document, position, token) {
-
-                const docLine = document.lineAt(position.line)
-                const hoveredLine = docLine.text.slice(docLine.firstNonWhitespaceCharacterIndex)
-
-                const hoveredRange = document.getWordRangeAtPosition(position)
-                const hoveredText = document.getText(hoveredRange)
-
-                // let matchresult = hoveredText.match(/(\w+){1}/gm)
-                const matchresult = hoveredText.match(HoverProvider.HOVERED_WORD_REGEX)
-
-                if (!matchresult || matchresult.length > 1) {
-                    console.log(`That's no single word. Waiting for the next hover.`)
-                    return null
+                if (!text) {
+                    vscode.window.showInformationMessage('Nothing selected to copy')
+                    return
                 }
+                void Promise.resolve(vscode.env.clipboard.writeText(String(text))).catch((err) =>
+                    console.error('Failed to write to clipboard:', err)
+                )
+            })
+        )
 
-                // Will return null or the hover content
-                return ohHoverProvider.getHover(hoveredText, hoveredLine)
-            }
-        })
+        disposables.push(
+            vscode.commands.registerCommand('openhab.command.items.copyState', (query: Item) => {
+                const state = query && query.state ? String(query.state) : undefined
+                if (!state) {
+                    vscode.window.showInformationMessage('No state available to copy')
+                    return
+                }
+                void Promise.resolve(vscode.env.clipboard.writeText(String(state))).catch((err) =>
+                    console.error('Failed to write to clipboard:', err)
+                )
+            })
+        )
 
+        disposables.push(
+            vscode.commands.registerCommand('openhab.command.items.copyLabel', (query: Item) => {
+                if (!query) {
+                    vscode.window.showInformationMessage('No item selected to copy')
+                    return
+                }
+                const label = query && query.label ? String(query.label) : ''
+                if (!label) {
+                    vscode.window.showInformationMessage('No label available to copy')
+                    return
+                }
+                void Promise.resolve(vscode.env.clipboard.writeText(String(label))).catch((err) =>
+                    console.error('Failed to write to clipboard:', err)
+                )
+            })
+        )
+
+        disposables.push(
+            vscode.commands.registerCommand('openhab.command.items.addRule', (query: Item) => {
+                const ruleProvider = new RuleProvider(query)
+                ruleProvider.addRule()
+            })
+        )
+
+        disposables.push(
+            vscode.commands.registerCommand('openhab.command.items.addToSitemap', (query: Item) => {
+                const sitemapProvider = new SitemapPartialProvider(query)
+                sitemapProvider.addToSitemap()
+            })
+        )
+
+        disposables.push(
+            vscode.commands.registerCommand('openhab.command.things.addItems', (query: Thing | Channel) => {
+                const itemsProvider = new ItemsProvider(query)
+                itemsProvider.addToItems()
+            })
+        )
+
+        disposables.push(
+            vscode.commands.registerCommand('openhab.command.things.copyUID', (query) => {
+                if (!query) {
+                    vscode.window.showInformationMessage('No thing selected to copy')
+                    return
+                }
+                let uid: string = ''
+                if (typeof query === 'string') {
+                    uid = String(query)
+                } else if (query && (query.UID || query.uid)) {
+                    uid = String(query.UID || query.uid)
+                }
+                if (!uid) {
+                    vscode.window.showInformationMessage('No UID available to copy')
+                    return
+                }
+                void Promise.resolve(vscode.env.clipboard.writeText(String(uid))).catch((err) =>
+                    console.error('Failed to write to clipboard:', err)
+                )
+            })
+        )
+
+        disposables.push(
+            vscode.commands.registerCommand('openhab.command.things.copyLabel', (query: Thing) => {
+                if (!query) {
+                    vscode.window.showInformationMessage('No thing selected to copy')
+                    return
+                }
+                const label = query && query.label ? String(query.label) : ''
+                if (!label) {
+                    vscode.window.showInformationMessage('No label available to copy')
+                    return
+                }
+                void Promise.resolve(vscode.env.clipboard.writeText(String(label))).catch((err) =>
+                    console.error('Failed to write to clipboard:', err)
+                )
+            })
+        )
+
+        disposables.push(
+            vscode.languages.registerHoverProvider(
+                { language: 'openhab', scheme: 'file' },
+                {
+                    provideHover(document, position, token) {
+                        const docLine = document.lineAt(position.line)
+                        const hoveredLine = docLine.text.slice(docLine.firstNonWhitespaceCharacterIndex)
+
+                        const hoveredRange = document.getWordRangeAtPosition(position)
+                        const hoveredText = document.getText(hoveredRange)
+
+                        // let matchresult = hoveredText.match(/(\w+){1}/gm)
+                        const matchresult = hoveredText.match(HoverProvider.HOVERED_WORD_REGEX)
+
+                        if (!matchresult || matchresult.length > 1) {
+                            console.log(`That's no single word. Waiting for the next hover.`)
+                            return null
+                        }
+
+                        // Will return null or the hover content
+                        return ohHoverProvider.getHover(hoveredText, hoveredLine)
+                    },
+                }
+            )
         )
 
         // Listen for document save events, to update the cached items
         vscode.workspace.onDidSaveTextDocument((savedDocument) => {
-            const fileEnding = savedDocument.fileName.split(".").slice(-1)[0]
+            const fileEnding = savedDocument.fileName.split('.').slice(-1)[0]
 
-            if (fileEnding === "items") {
+            if (fileEnding === 'items') {
                 console.log(`Items file was saved.\nRefreshing cached items for HoverProvider`)
 
                 // Give item registry some time to reflect the file changes.
@@ -264,7 +294,6 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
 
 // This method is called when the extension is activated
 export function activate(context: vscode.ExtensionContext) {
-
     // Prepare disposables array, context and config
     const disposables: vscode.Disposable[] = []
     _extensionPath = context.extensionPath
@@ -272,20 +301,18 @@ export function activate(context: vscode.ExtensionContext) {
     // Spread in the disposables array to the subscription (This will include all disposables from the init method)
     context.subscriptions.push(new vscode.Disposable(() => vscode.Disposable.from(...disposables).dispose()))
 
-    init(disposables, context)
-        .catch(err => console.error(err))
+    init(disposables, context).catch((err) => console.error(err))
 
-    const message = `openHAB vscode extension has been activated`;
+    const message = `openHAB vscode extension has been activated`
     console.log(message)
     utils.appendToOutput(message)
-
 }
 
 // This method is called when the extension is deactivated
 export function deactivate() {
     ohStatusBarItem.hide()
 
-    const message = `openHAB vscode extension has been shut down`;
+    const message = `openHAB vscode extension has been shut down`
     console.log(message)
     utils.appendToOutput(message)
 }

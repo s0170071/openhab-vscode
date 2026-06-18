@@ -5,7 +5,7 @@ import {
     CompletionItemProvider,
     Position,
     TextDocument,
-    workspace
+    workspace,
 } from 'vscode'
 
 import { Item } from './Item'
@@ -21,32 +21,37 @@ import { OH_CONFIG_PARAMETERS } from '../Utils/types'
  * @author Kuba Wolanin - Initial contribution
  */
 export class ItemsCompletion implements CompletionItemProvider {
-
     constructor() {
-    if (this.model) {
-        return
+        if (this.model) {
+            return
         }
-    this.model = new ItemsModel()
-}
+        this.model = new ItemsModel()
+    }
 
     private model: ItemsModel
 
-    public provideCompletionItems(document: TextDocument, position: Position, token: CancellationToken): Thenable<CompletionItem[]> {
+    public provideCompletionItems(
+        document: TextDocument,
+        position: Position,
+        token: CancellationToken
+    ): Thenable<CompletionItem[]> {
         return new Promise((resolve, reject) => {
             if (!ConfigManager.get(OH_CONFIG_PARAMETERS.useRestApi)) {
                 reject()
                 return
             }
-            this.model.completions.then(completions => {
-                resolve(completions.map((item: Item) => {
-                    let completionItem = _.assign(new CompletionItem(item.name), {
-                        kind: CompletionItemKind.Variable,
-                        detail: item.type,
-                        documentation: this.getDocumentation(item)
-                    })
+            this.model.completions.then((completions) => {
+                resolve(
+                    completions.map((item: Item) => {
+                        let completionItem = _.assign(new CompletionItem(item.name), {
+                            kind: CompletionItemKind.Variable,
+                            detail: item.type,
+                            documentation: this.getDocumentation(item),
+                        })
 
-                    return completionItem
-                }))
+                        return completionItem
+                    })
+                )
             })
         })
     }
@@ -61,11 +66,7 @@ export class ItemsCompletion implements CompletionItemProvider {
         let state = item.state ? '(' + item.state + ')' : ''
         let tags = item.tags.length && 'Tags: ' + item.tags.join(', ')
         let groupNames = item.groupNames.length && 'Groups: ' + item.groupNames.join(', ')
-        let documentation: string[] = [
-            label + state,
-            tags,
-            groupNames
-        ]
+        let documentation: string[] = [label + state, tags, groupNames]
 
         return _.compact(documentation).join('\n')
     }
