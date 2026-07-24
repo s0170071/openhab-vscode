@@ -26,6 +26,7 @@ The extension is designed with openHAB 2.x in mind - most snippets and design pa
 - Get live Item states while hovering over item names in the Editor
 - Extract item states from `events.log` / `openhab.log`: hovering a variable like `geschlossenPrev` shows its value when found in the log with the format `geschlossenPrev="true"`
 - Hover tooltips for item names in JavaScript automation files (`.js`) and sitemap files (`.sitemap`), including `item=<name>` references
+- Hover over an item to see where it's defined and where it's used in Things, Rules, Sitemaps and Scripts, with jump-to links
 - Show human readable `Thread::sleep()` times while hovering
 
 ### Log Hover Configuration
