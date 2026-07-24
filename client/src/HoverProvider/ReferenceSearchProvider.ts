@@ -90,10 +90,10 @@ export class ReferenceSearchProvider {
         glob: string,
         matcher: (line: string, itemName: string) => boolean
     ): Promise<FileLocationRef[]> {
-        return vscode.workspace.findFiles(glob, DEFAULT_EXCLUDE).then((uris) =>
+        return Promise.resolve(vscode.workspace.findFiles(glob, DEFAULT_EXCLUDE)).then((uris) =>
             Promise.all(
                 uris.map((uri) =>
-                    vscode.workspace.fs.readFile(uri).then(
+                    Promise.resolve(vscode.workspace.fs.readFile(uri)).then(
                         (bytes) => extractMatches(uri, bytes, itemName, matcher),
                         () => [] as FileLocationRef[]
                     )

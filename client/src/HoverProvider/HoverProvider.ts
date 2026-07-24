@@ -108,7 +108,7 @@ export class HoverProvider {
      * @param hoveredLine The complete hovered line for further processing
      * @returns A thenable [Hover](Hover) object with a readable sleeping time
      */
-    private getReadableThreadSleep(hoveredLine: string): Thenable<Hover> {
+    private getReadableThreadSleep(hoveredLine: string): Promise<Hover> {
         let match: number = parseInt(hoveredLine.match(HoverProvider.THREAD_SLEEP_REGEX)[0])
 
         return new Promise((resolve, reject) => {
