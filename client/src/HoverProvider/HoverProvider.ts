@@ -212,11 +212,12 @@ export class HoverProvider {
      */
     private getReferencesMarkdown(hoveredText: string): Promise<MarkdownString | null> {
         const showDefinitions = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showItemDefinition) as boolean
+        const showThings = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showThingsReferences) as boolean
         const showRules = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showRuleReferences) as boolean
         const showSitemaps = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showSitemapReferences) as boolean
         const showScripts = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showScriptReferences) as boolean
 
-        if (!showDefinitions && !showRules && !showSitemaps && !showScripts) return Promise.resolve(null)
+        if (!showDefinitions && !showThings && !showRules && !showSitemaps && !showScripts) return Promise.resolve(null)
 
         if (!workspace.workspaceFolders || workspace.workspaceFolders.length === 0) return Promise.resolve(null)
 
@@ -228,6 +229,7 @@ export class HoverProvider {
                 let any = false
 
                 if (showDefinitions) any = this.appendCategory(resultText, 'Defined in', result.definitions, max) || any
+                if (showThings) any = this.appendCategory(resultText, 'Used in Things', result.things, max) || any
                 if (showRules) any = this.appendCategory(resultText, 'Used in Rules', result.rules, max) || any
                 if (showSitemaps) any = this.appendCategory(resultText, 'Used in Sitemaps', result.sitemaps, max) || any
                 if (showScripts) any = this.appendCategory(resultText, 'Used in Scripts', result.scripts, max) || any

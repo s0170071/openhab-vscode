@@ -21,6 +21,7 @@ export const OH_CONFIG_PARAMETERS = {
     },
     hover: {
         showItemDefinition: 'hover.showItemDefinition',
+        showThingsReferences: 'hover.showThingsReferences',
         showRuleReferences: 'hover.showRuleReferences',
         showSitemapReferences: 'hover.showSitemapReferences',
         showScriptReferences: 'hover.showScriptReferences',

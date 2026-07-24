@@ -252,22 +252,27 @@
                 "openhab.hover.showItemDefinition": {
                     "type": "boolean",
                     "default": true,
-                    "markdownDescription": "Show the `.items` file location where a hovered item is defined, with a jump-to link."
+                    "markdownDescription": "Show the `.items` file location (searched under an `items/` folder) where a hovered item is defined, with a jump-to link."
+                },
+                "openhab.hover.showThingsReferences": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show `.things` file locations (searched under a `things/` folder) that reference a hovered item, with jump-to links."
                 },
                 "openhab.hover.showRuleReferences": {
                     "type": "boolean",
                     "default": true,
-                    "markdownDescription": "Show `.rules` file locations that reference a hovered item, with jump-to links."
+                    "markdownDescription": "Show `.rules` file locations (searched under a `rules/` folder) that reference a hovered item, with jump-to links."
                 },
                 "openhab.hover.showSitemapReferences": {
                     "type": "boolean",
                     "default": true,
-                    "markdownDescription": "Show `.sitemap` file locations that reference a hovered item (`item=<name>`), with jump-to links."
+                    "markdownDescription": "Show `.sitemap` file locations (searched under a `sitemaps/` folder) that reference a hovered item (`item=<name>`), with jump-to links."
                 },
                 "openhab.hover.showScriptReferences": {
                     "type": "boolean",
                     "default": true,
-                    "markdownDescription": "Show `.js` automation script locations that reference a hovered item, with jump-to links."
+                    "markdownDescription": "Show `.js` automation script locations (searched under an `automation/` folder) that reference a hovered item, with jump-to links."
                 },
                 "openhab.hover.showLogSearch": {
                     "type": "boolean",

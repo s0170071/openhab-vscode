@@ -16,13 +16,15 @@ export interface FileLocationRef {
  * All references found for a given item name, grouped by category.
  */
 export interface ItemReferenceResult {
-    /** Lines in *.items files where the item is declared */
+    /** Lines in *.items files (under an items/ folder) where the item is declared */
     definitions: FileLocationRef[]
-    /** Lines in *.rules files mentioning the item */
+    /** Lines in *.things files (under a things/ folder) mentioning the item */
+    things: FileLocationRef[]
+    /** Lines in *.rules files (under a rules/ folder) mentioning the item */
     rules: FileLocationRef[]
-    /** Lines in *.sitemap files referencing the item (item=<name>) */
+    /** Lines in *.sitemap files (under a sitemaps/ folder) referencing the item (item=<name>) */
     sitemaps: FileLocationRef[]
-    /** Lines in *.js automation scripts mentioning the item */
+    /** Lines in *.js files (under an automation/ folder) mentioning the item */
     scripts: FileLocationRef[]
 }
 
@@ -32,13 +34,23 @@ const MAX_MATCHES_PER_CATEGORY = 200
 /** Default excludes so we don't scan dependency/build folders. */
 const DEFAULT_EXCLUDE = '**/{node_modules,.git,out,dist}/**'
 
+/**
+ * Search globs, scoped to the conventional openHAB config folder for each file type,
+ * so unrelated *.items/*.rules/etc. files elsewhere in the workspace are not scanned.
+ */
+const ITEMS_GLOB = '**/items/**/*.items'
+const THINGS_GLOB = '**/things/**/*.things'
+const RULES_GLOB = '**/rules/**/*.rules'
+const SITEMAPS_GLOB = '**/sitemaps/**/*.sitemap'
+const SCRIPTS_GLOB = '**/automation/**/*.js'
+
 /** Item type keywords that can start an item definition line in a *.items file. */
 const ITEM_TYPE_PATTERN =
     '(?:Group|Color|Contact|DateTime|Dimmer|Image|Location|Number(?::[a-zA-Z]*)?|Player|Rollershutter|String|Switch)'
 
 /**
- * Searches the current VS Code workspace for references to an openHAB item name
- * across *.items, *.rules, *.sitemap and *.js files.
+ * Searches the current VS Code workspace for references to an openHAB item name,
+ * scoped to the conventional openHAB config folders: items/, things/, rules/, sitemaps/ and automation/.
  *
  * Results are cached per item name until explicitly invalidated (e.g. on file save).
  *
@@ -58,12 +70,13 @@ export class ReferenceSearchProvider {
         if (cached) return Promise.resolve(cached)
 
         return Promise.all([
-            this._searchCategory(itemName, '**/*.items', isDefinitionLine),
-            this._searchCategory(itemName, '**/*.rules', isWordMatch),
-            this._searchCategory(itemName, '**/*.sitemap', isSitemapReference),
-            this._searchCategory(itemName, '**/*.js', isWordMatch),
-        ]).then(([definitions, rules, sitemaps, scripts]) => {
-            const result: ItemReferenceResult = { definitions, rules, sitemaps, scripts }
+            this._searchCategory(itemName, ITEMS_GLOB, isDefinitionLine),
+            this._searchCategory(itemName, THINGS_GLOB, isWordMatch),
+            this._searchCategory(itemName, RULES_GLOB, isWordMatch),
+            this._searchCategory(itemName, SITEMAPS_GLOB, isSitemapReference),
+            this._searchCategory(itemName, SCRIPTS_GLOB, isWordMatch),
+        ]).then(([definitions, things, rules, sitemaps, scripts]) => {
+            const result: ItemReferenceResult = { definitions, things, rules, sitemaps, scripts }
             this.cache.set(itemName, result)
             return result
         })

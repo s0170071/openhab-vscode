@@ -290,13 +290,15 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
                 utils.sleep(1500).then(() => ohHoverProvider.updateItems())
             }
 
-            if (['items', 'rules', 'sitemap', 'js'].includes(fileEnding)) {
+            if (['items', 'things', 'rules', 'sitemap', 'js'].includes(fileEnding)) {
                 ohHoverProvider.invalidateReferenceCache()
             }
         })
 
         // Invalidate the reference cache when relevant files are created, deleted or renamed
-        const referenceWatcher = vscode.workspace.createFileSystemWatcher('**/*.{items,rules,sitemap,js}')
+        const referenceWatcher = vscode.workspace.createFileSystemWatcher(
+            '**/{items,things,rules,sitemaps,automation}/**/*.{items,things,rules,sitemap,js}'
+        )
         disposables.push(
             referenceWatcher,
             referenceWatcher.onDidCreate(() => ohHoverProvider.invalidateReferenceCache()),
