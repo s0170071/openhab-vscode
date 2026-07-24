@@ -3,6 +3,7 @@ import { Hover, MarkdownString } from 'vscode'
 import * as utils from '../Utils/Utils'
 import { ConfigManager } from '../Utils/ConfigManager'
 import { OH_CONFIG_PARAMETERS } from '../Utils/types'
+import { LogSearchProvider, LogSearchResult } from './LogSearchProvider'
 
 /**
  * Handles hover actions in editor windows.
@@ -19,6 +20,11 @@ export class HoverProvider {
     private knownItems: string[] = []
 
     /**
+     * Log search provider for events.log / openhab.log lookup
+     */
+    private logSearch: LogSearchProvider
+
+    /**
      * Regex for Thread::sleep() expression
      */
     public static THREAD_SLEEP_REGEX: RegExp = /(?<=sleep\()[0-9]{1,9}(?=\))/gm
@@ -33,6 +39,7 @@ export class HoverProvider {
      */
     public constructor() {
         this.updateItems()
+        this.logSearch = new LogSearchProvider()
     }
 
     /**
@@ -53,8 +60,8 @@ export class HoverProvider {
         console.debug(`Checking if => ${hoveredText} <= is a known Item now`)
         if (this.knownItems.includes(hoveredText)) return this.getRestItemHover(hoveredText)
 
-        console.log(`Nothing to hover, waiting...`)
-        return null
+        console.debug(`Checking events.log for => ${hoveredText} <=`)
+        return this.getLogHover(hoveredText)
     }
 
     /**
@@ -144,6 +151,66 @@ export class HoverProvider {
         const ms = msDuration - h * 3600 * 1000 - m * 60 * 1000 - s * 1000
 
         return `${h != 0 ? h + ' hours ' : ''}${m != 0 ? m + ' minutes ' : ''}${s != 0 ? s + ' seconds ' : ''}${ms != 0 ? ms + ' milliseconds ' : ''}`
+    }
+
+    /**
+     * Searches events.log and openhab.log for the latest mention of the hovered text.
+     * If a state change or command is found, displays the state prominently.
+     *
+     * @param hoveredText The currently hovered text
+     * @returns A Hover with log information, or null if not found
+     */
+    private getLogHover(hoveredText: string): Promise<Hover | null> {
+        return this.logSearch
+            .searchLog(hoveredText)
+            .then((result) => {
+                if (!result) return null
+
+                const resultText = new MarkdownString()
+                resultText.isTrusted = true
+
+                if (result.state !== null) {
+                    if (result.kvFromLine) {
+                        // Key=value extracted from raw log line — show just the state
+                        resultText.appendCodeblock(`eventslog: ${result.state}`, 'openhab')
+                    } else {
+                        // Show state prominently
+                        const eventLabel =
+                            result.eventType === 'command'
+                                ? 'command'
+                                : result.eventType === 'thingStatus'
+                                  ? 'status'
+                                  : 'state'
+
+                        resultText.appendMarkdown(`**Latest ${eventLabel}** *(from events.log)*\n\n`)
+                        resultText.appendCodeblock(`${result.itemName || hoveredText} → ${result.state}`, 'openhab')
+
+                        if (result.timestamp) {
+                            resultText.appendMarkdown(`\n$(clock) \`${result.timestamp}\`\n`)
+                        }
+
+                        resultText.appendMarkdown(`\n---\n`)
+                        resultText.appendMarkdown(`<small>${this._escapeMarkdown(result.rawLine)}</small>\n`)
+                    }
+                } else {
+                    // No state extracted — show raw log line
+                    resultText.appendMarkdown(`**Last seen in events.log**\n`)
+                    resultText.appendCodeblock(result.rawLine, 'log')
+                }
+
+                return new Hover(resultText)
+            })
+            .catch((e) => {
+                console.debug(`LogHover: error searching for '${hoveredText}': ${e}`)
+                return null
+            })
+    }
+
+    /**
+     * Escape special markdown characters in a string
+     */
+    private _escapeMarkdown(text: string): string {
+        return text.replace(/([\\`*_{}\[\]()#+\-.!|])/g, '\\$1')
     }
 
     /**
