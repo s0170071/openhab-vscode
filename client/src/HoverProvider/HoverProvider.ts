@@ -31,6 +31,13 @@ export class HoverProvider {
     private referenceSearch: ReferenceSearchProvider = new ReferenceSearchProvider()
 
     /**
+     * Tracks, per item name, which reference location was last jumped to,
+     * so it can be highlighted the next time the reference list is shown.
+     * Keyed by item name, valued by the reference's uri/line key (see referenceKey()).
+     */
+    private lastViewedReference = new Map<string, string>()
+
+    /**
      * Regex for Thread::sleep() expression
      */
     public static THREAD_SLEEP_REGEX: RegExp = /(?<=sleep\()[0-9]{1,9}(?=\))/gm
@@ -228,11 +235,16 @@ export class HoverProvider {
                 const resultText = new MarkdownString()
                 let any = false
 
-                if (showDefinitions) any = this.appendCategory(resultText, 'Defined in', result.definitions, max) || any
-                if (showThings) any = this.appendCategory(resultText, 'Used in Things', result.things, max) || any
-                if (showRules) any = this.appendCategory(resultText, 'Used in Rules', result.rules, max) || any
-                if (showSitemaps) any = this.appendCategory(resultText, 'Used in Sitemaps', result.sitemaps, max) || any
-                if (showScripts) any = this.appendCategory(resultText, 'Used in Scripts', result.scripts, max) || any
+                if (showDefinitions)
+                    any = this.appendCategory(resultText, 'Defined in', result.definitions, max, hoveredText) || any
+                if (showThings)
+                    any = this.appendCategory(resultText, 'Used in Things', result.things, max, hoveredText) || any
+                if (showRules)
+                    any = this.appendCategory(resultText, 'Used in Rules', result.rules, max, hoveredText) || any
+                if (showSitemaps)
+                    any = this.appendCategory(resultText, 'Used in Sitemaps', result.sitemaps, max, hoveredText) || any
+                if (showScripts)
+                    any = this.appendCategory(resultText, 'Used in Scripts', result.scripts, max, hoveredText) || any
 
                 return any ? resultText : null
             })
@@ -244,16 +256,23 @@ export class HoverProvider {
 
     /**
      * Appends a capped, clickable list of file locations for one reference category.
+     * The reference that was last jumped to for this item (if any) is highlighted.
      *
      * @returns **true** if the category had at least one reference (and something was appended)
      */
-    private appendCategory(resultText: MarkdownString, title: string, refs: FileLocationRef[], max: number): boolean {
+    private appendCategory(
+        resultText: MarkdownString,
+        title: string,
+        refs: FileLocationRef[],
+        max: number,
+        itemName: string
+    ): boolean {
         if (refs.length === 0) return false
 
         resultText.appendMarkdown(`\n\n**${title}** (${refs.length})\n\n`)
 
         refs.slice(0, max).forEach((ref) => {
-            resultText.appendMarkdown(`- ${this.locationLink(ref)}\n`)
+            resultText.appendMarkdown(`- ${this.locationLink(ref, itemName)}\n`)
         })
 
         if (refs.length > max) {
@@ -264,13 +283,36 @@ export class HoverProvider {
     }
 
     /**
-     * Builds a Markdown command-link that jumps to the given file location.
+     * Builds a unique key identifying a file location, used to detect the last-viewed reference.
      */
-    private locationLink(ref: FileLocationRef): string {
-        const relativePath = workspace.asRelativePath(ref.uri, false)
-        const args = encodeURIComponent(JSON.stringify([ref.uri.toString(), ref.line]))
+    private static referenceKey(uri: string, line: number): string {
+        return `${uri}#${line}`
+    }
 
-        return `[${relativePath}:${ref.line + 1}](command:openhab.command.hover.openLocation?${args})`
+    /**
+     * Records that the given reference was just jumped to for the given item,
+     * so it can be highlighted the next time this item's reference list is shown.
+     *
+     * @param itemName The item name the jumped-to reference belongs to
+     * @param uri The uri (as string) of the file that was jumped to
+     * @param line The zero-based line number that was jumped to
+     */
+    public markReferenceViewed(itemName: string, uri: string, line: number): void {
+        this.lastViewedReference.set(itemName, HoverProvider.referenceKey(uri, line))
+    }
+
+    /**
+     * Builds a Markdown command-link that jumps to the given file location.
+     * If this location was the last one jumped to for the given item, it's highlighted.
+     */
+    private locationLink(ref: FileLocationRef, itemName: string): string {
+        const relativePath = workspace.asRelativePath(ref.uri, false)
+        const uriString = ref.uri.toString()
+        const args = encodeURIComponent(JSON.stringify([uriString, ref.line, itemName]))
+        const link = `[${relativePath}:${ref.line + 1}](command:openhab.command.hover.openLocation?${args})`
+
+        const isLastViewed = this.lastViewedReference.get(itemName) === HoverProvider.referenceKey(uriString, ref.line)
+        return isLastViewed ? `**${link}** _(last viewed)_` : link
     }
 
     /**
