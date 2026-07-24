@@ -278,7 +278,12 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
                         }
 
                         // Will return null or the hover content
-                        return ohHoverProvider.getHover(hoveredText, hoveredLine)
+                        return ohHoverProvider.getHover(
+                            hoveredText,
+                            hoveredLine,
+                            document.uri.toString(),
+                            position.line
+                        )
                     },
                 }
             )

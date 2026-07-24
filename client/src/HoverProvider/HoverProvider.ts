@@ -59,9 +59,17 @@ export class HoverProvider {
      *
      *
      * @param hoveredText The currently hovered text part
+     * @param hoveredLine The full text of the line being hovered over
+     * @param currentUri The uri (as string) of the document being hovered over
+     * @param currentLine The zero-based line number being hovered over
      * @returns A thenable [Hover](Hover) object with live information or null if no item is found
      */
-    public getHover(hoveredText: string, hoveredLine: string): Promise<Hover | null> | null {
+    public getHover(
+        hoveredText: string,
+        hoveredLine: string,
+        currentUri?: string,
+        currentLine?: number
+    ): Promise<Hover | null> | null {
         console.log(`Checking if text can get a hover information.`)
 
         console.debug(`Checking if => ${hoveredLine} <= includes a Thread::sleep()`)
@@ -78,7 +86,7 @@ export class HoverProvider {
             return null
         }
 
-        return this.getComposedHover(hoveredText, isKnownItem)
+        return this.getComposedHover(hoveredText, isKnownItem, currentUri, currentLine)
     }
 
     /**
@@ -86,14 +94,21 @@ export class HoverProvider {
      *
      * @param hoveredText The currently hovered text part
      * @param isKnownItem Whether the text is a known REST item
+     * @param currentUri The uri (as string) of the document being hovered over
+     * @param currentLine The zero-based line number being hovered over
      * @returns A promise resolving to a [Hover](Hover) object, or null if nothing was found
      */
-    private getComposedHover(hoveredText: string, isKnownItem: boolean): Promise<Hover | null> {
+    private getComposedHover(
+        hoveredText: string,
+        isKnownItem: boolean,
+        currentUri?: string,
+        currentLine?: number
+    ): Promise<Hover | null> {
         const statePromise: Promise<MarkdownString | null> = isKnownItem
             ? this.getRestItemMarkdown(hoveredText)
             : this.getLogSearchMarkdown(hoveredText)
 
-        return Promise.all([statePromise, this.getReferencesMarkdown(hoveredText)]).then(
+        return Promise.all([statePromise, this.getReferencesMarkdown(hoveredText, currentUri, currentLine)]).then(
             ([stateMarkdown, referencesMarkdown]) => {
                 if (!stateMarkdown && !referencesMarkdown) return null
 
@@ -215,9 +230,15 @@ export class HoverProvider {
      * for the hovered item, based on the current workspace reference search.
      *
      * @param hoveredText The currently hovered text part
+     * @param currentUri The uri (as string) of the document being hovered over
+     * @param currentLine The zero-based line number being hovered over
      * @returns A promise resolving to a [MarkdownString](MarkdownString) with the reference sections, or null if none are enabled/found
      */
-    private getReferencesMarkdown(hoveredText: string): Promise<MarkdownString | null> {
+    private getReferencesMarkdown(
+        hoveredText: string,
+        currentUri?: string,
+        currentLine?: number
+    ): Promise<MarkdownString | null> {
         const showDefinitions = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showItemDefinition) as boolean
         const showThings = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showThingsReferences) as boolean
         const showRules = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showRuleReferences) as boolean
@@ -236,15 +257,60 @@ export class HoverProvider {
                 let any = false
 
                 if (showDefinitions)
-                    any = this.appendCategory(resultText, 'Defined in', result.definitions, max, hoveredText) || any
+                    any =
+                        this.appendCategory(
+                            resultText,
+                            'Defined in',
+                            result.definitions,
+                            max,
+                            hoveredText,
+                            currentUri,
+                            currentLine
+                        ) || any
                 if (showThings)
-                    any = this.appendCategory(resultText, 'Used in Things', result.things, max, hoveredText) || any
+                    any =
+                        this.appendCategory(
+                            resultText,
+                            'Used in Things',
+                            result.things,
+                            max,
+                            hoveredText,
+                            currentUri,
+                            currentLine
+                        ) || any
                 if (showRules)
-                    any = this.appendCategory(resultText, 'Used in Rules', result.rules, max, hoveredText) || any
+                    any =
+                        this.appendCategory(
+                            resultText,
+                            'Used in Rules',
+                            result.rules,
+                            max,
+                            hoveredText,
+                            currentUri,
+                            currentLine
+                        ) || any
                 if (showSitemaps)
-                    any = this.appendCategory(resultText, 'Used in Sitemaps', result.sitemaps, max, hoveredText) || any
+                    any =
+                        this.appendCategory(
+                            resultText,
+                            'Used in Sitemaps',
+                            result.sitemaps,
+                            max,
+                            hoveredText,
+                            currentUri,
+                            currentLine
+                        ) || any
                 if (showScripts)
-                    any = this.appendCategory(resultText, 'Used in Scripts', result.scripts, max, hoveredText) || any
+                    any =
+                        this.appendCategory(
+                            resultText,
+                            'Used in Scripts',
+                            result.scripts,
+                            max,
+                            hoveredText,
+                            currentUri,
+                            currentLine
+                        ) || any
 
                 return any ? resultText : null
             })
@@ -256,7 +322,8 @@ export class HoverProvider {
 
     /**
      * Appends a capped, clickable list of file locations for one reference category.
-     * The reference that was last jumped to for this item (if any) is highlighted.
+     * The reference that was last jumped to for this item (if any) is highlighted,
+     * unless it's the very location currently being hovered over.
      *
      * @returns **true** if the category had at least one reference (and something was appended)
      */
@@ -265,14 +332,16 @@ export class HoverProvider {
         title: string,
         refs: FileLocationRef[],
         max: number,
-        itemName: string
+        itemName: string,
+        currentUri?: string,
+        currentLine?: number
     ): boolean {
         if (refs.length === 0) return false
 
         resultText.appendMarkdown(`\n\n**${title}** (${refs.length})\n\n`)
 
         refs.slice(0, max).forEach((ref) => {
-            resultText.appendMarkdown(`- ${this.locationLink(ref, itemName)}\n`)
+            resultText.appendMarkdown(`- ${this.locationLink(ref, itemName, currentUri, currentLine)}\n`)
         })
 
         if (refs.length > max) {
@@ -303,15 +372,20 @@ export class HoverProvider {
 
     /**
      * Builds a Markdown command-link that jumps to the given file location.
-     * If this location was the last one jumped to for the given item, it's highlighted.
+     * If this location was the last one jumped to for the given item, it's highlighted -
+     * unless it's the location currently being hovered over, since that's just where the
+     * cursor already is, not a location one would jump to.
      */
-    private locationLink(ref: FileLocationRef, itemName: string): string {
+    private locationLink(ref: FileLocationRef, itemName: string, currentUri?: string, currentLine?: number): string {
         const relativePath = workspace.asRelativePath(ref.uri, false)
         const uriString = ref.uri.toString()
         const args = encodeURIComponent(JSON.stringify([uriString, ref.line, itemName]))
         const link = `[${relativePath}:${ref.line + 1}](command:openhab.command.hover.openLocation?${args})`
 
-        const isLastViewed = this.lastViewedReference.get(itemName) === HoverProvider.referenceKey(uriString, ref.line)
+        const isCurrentOccurrence = currentUri === uriString && currentLine === ref.line
+        const isLastViewed =
+            !isCurrentOccurrence &&
+            this.lastViewedReference.get(itemName) === HoverProvider.referenceKey(uriString, ref.line)
         return isLastViewed ? `**${link}** _(last viewed)_` : link
     }
 
