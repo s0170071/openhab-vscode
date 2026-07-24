@@ -3,7 +3,6 @@ import { Hover, MarkdownString, Uri, workspace } from 'vscode'
 import * as utils from '../Utils/Utils'
 import { ConfigManager } from '../Utils/ConfigManager'
 import { OH_CONFIG_PARAMETERS } from '../Utils/types'
-import { LogSearchProvider } from './LogSearchProvider'
 import { ReferenceSearchProvider, FileLocationRef } from './ReferenceSearchProvider'
 
 /**
@@ -19,11 +18,6 @@ export class HoverProvider {
      * Array of known Items from the openHAB environment
      */
     private knownItems: string[] = []
-
-    /**
-     * Searches events.log / openhab.log for item state changes
-     */
-    private logSearch: LogSearchProvider = new LogSearchProvider()
 
     /**
      * Searches the workspace for item definitions and references
@@ -79,34 +73,25 @@ export class HoverProvider {
 
         console.debug(`Checking if => ${hoveredText} <= is a known Item now`)
         const isKnownItem = this.knownItems.includes(hoveredText)
-        const logSearchEnabled = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showLogSearch) as boolean
 
-        if (!isKnownItem && !logSearchEnabled) {
+        if (!isKnownItem) {
             console.log(`Nothing to hover, waiting...`)
             return null
         }
 
-        return this.getComposedHover(hoveredText, isKnownItem, currentUri, currentLine)
+        return this.getComposedHover(hoveredText, currentUri, currentLine)
     }
 
     /**
      * Composes the full hover: live/log state plus workspace reference sections.
      *
      * @param hoveredText The currently hovered text part
-     * @param isKnownItem Whether the text is a known REST item
      * @param currentUri The uri (as string) of the document being hovered over
      * @param currentLine The zero-based line number being hovered over
      * @returns A promise resolving to a [Hover](Hover) object, or null if nothing was found
      */
-    private getComposedHover(
-        hoveredText: string,
-        isKnownItem: boolean,
-        currentUri?: string,
-        currentLine?: number
-    ): Promise<Hover | null> {
-        const statePromise: Promise<MarkdownString | null> = isKnownItem
-            ? this.getRestItemMarkdown(hoveredText)
-            : this.getLogSearchMarkdown(hoveredText)
+    private getComposedHover(hoveredText: string, currentUri?: string, currentLine?: number): Promise<Hover | null> {
+        const statePromise: Promise<MarkdownString | null> = this.getRestItemMarkdown(hoveredText)
 
         return Promise.all([statePromise, this.getReferencesMarkdown(hoveredText, currentUri, currentLine)]).then(
             ([stateMarkdown, referencesMarkdown]) => {
@@ -193,36 +178,6 @@ export class HoverProvider {
                 return resultText
             })
             .catch(() => null)
-    }
-
-    /**
-     * Falls back to searching events.log / openhab.log for the hovered expression's latest state,
-     * when it is not a known REST item.
-     *
-     * @param hoveredText The currently hovered text part
-     * @returns A promise resolving to a [MarkdownString](MarkdownString) with the log state, or null if not found
-     */
-    private getLogSearchMarkdown(hoveredText: string): Promise<MarkdownString | null> {
-        return this.logSearch
-            .searchLog(hoveredText)
-            .then((result) => {
-                if (!result) return null
-
-                const resultText = new MarkdownString()
-
-                if (result.itemName && result.state) {
-                    resultText.appendCodeblock(`${result.itemName}: ${result.state}`, 'openhab')
-                } else {
-                    resultText.appendMarkdown(`Found in log:\n`)
-                    resultText.appendCodeblock(result.rawLine, 'log')
-                }
-
-                return resultText
-            })
-            .catch((e) => {
-                console.debug(`LogSearch failed for '${hoveredText}': ${e}`)
-                return null
-            })
     }
 
     /**

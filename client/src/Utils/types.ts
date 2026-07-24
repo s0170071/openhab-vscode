@@ -15,17 +15,12 @@ export const OH_CONFIG_PARAMETERS = {
         remoteEnabled: 'languageserver.remoteEnabled',
         remotePort: 'languageserver.remotePort',
     },
-    log: {
-        eventsLogPath: 'log.eventsLogPath',
-        openhabLogPath: 'log.openhabLogPath',
-    },
     hover: {
         showItemDefinition: 'hover.showItemDefinition',
         showThingsReferences: 'hover.showThingsReferences',
         showRuleReferences: 'hover.showRuleReferences',
         showSitemapReferences: 'hover.showSitemapReferences',
         showScriptReferences: 'hover.showScriptReferences',
-        showLogSearch: 'hover.showLogSearch',
         maxReferencesPerCategory: 'hover.maxReferencesPerCategory',
     },
     itemCasing: 'itemCasing',

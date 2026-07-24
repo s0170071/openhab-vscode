@@ -233,22 +233,6 @@
                     "default": true,
                     "markdownDescription": "Connects to *openHAB REST API* if set to **true**.\n\nIf not, items tree view and things tree view are **disabled**."
                 },
-                "openhab.log.eventsLogPath": {
-                    "type": [
-                        "string",
-                        "null"
-                    ],
-                    "default": "/opt/openhab/userdata/logs/events.log",
-                    "markdownDescription": "Absolute path to the openHAB `events.log` file.\n\nUsed by the **Log Hover** feature to search for item state changes. Set to `null` to disable."
-                },
-                "openhab.log.openhabLogPath": {
-                    "type": [
-                        "string",
-                        "null"
-                    ],
-                    "default": "/opt/openhab/userdata/logs/openhab.log",
-                    "markdownDescription": "Absolute path to the openHAB `openhab.log` file.\n\nUsed by the **Log Hover** feature to search for rule/automation log output. Set to `null` to disable."
-                },
                 "openhab.hover.showItemDefinition": {
                     "type": "boolean",
                     "default": true,
@@ -273,11 +257,6 @@
                     "type": "boolean",
                     "default": true,
                     "markdownDescription": "Show `.js` automation script locations (searched under an `automation/` folder) that reference a hovered item, with jump-to links."
-                },
-                "openhab.hover.showLogSearch": {
-                    "type": "boolean",
-                    "default": true,
-                    "markdownDescription": "Fall back to searching `events.log` / `openhab.log` for a hovered expression's latest state, when it is not a known REST item."
                 },
                 "openhab.hover.maxReferencesPerCategory": {
                     "type": "number",
