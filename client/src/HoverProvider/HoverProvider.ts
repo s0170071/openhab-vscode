@@ -31,8 +31,9 @@ export class HoverProvider {
 
     /**
      * Regex for all hover-relevant wordings
+     * Matches: sleep(nnn), key="value", key='value', key=value, or plain words
      */
-    public static HOVERED_WORD_REGEX: RegExp = /(?<=sleep\()[0-9]{1,9}(?=\)){1}|(\w+){1}/gm
+    public static HOVERED_WORD_REGEX: RegExp = /(?<=sleep\()[0-9]{1,9}(?=\)){1}|\w+=(?:"[^"]*"|'[^']*'|\S+)|\w+/gm
 
     /**
      * Only allow the class to call the constructor
@@ -57,8 +58,13 @@ export class HoverProvider {
 
         if (lineMatch && lineMatch.length == 1) return this.getReadableThreadSleep(hoveredLine)
 
-        console.debug(`Checking if => ${hoveredText} <= is a known Item now`)
-        if (this.knownItems.includes(hoveredText)) return this.getRestItemHover(hoveredText)
+        // If hoveredText is a key=value pair (e.g. item=FF_Bath_Light or label="My Label"),
+        // extract the value for item lookup so sitemap/rules references like item=X work correctly.
+        const kvMatch = hoveredText.match(/^\w+=(?:"([^"]*)"|'([^']*)'|(\S+))$/)
+        const lookupText = kvMatch ? (kvMatch[1] ?? kvMatch[2] ?? kvMatch[3]) : hoveredText
+
+        console.debug(`Checking if => ${lookupText} <= is a known Item now`)
+        if (this.knownItems.includes(lookupText)) return this.getRestItemHover(lookupText)
 
         console.debug(`Checking events.log for => ${hoveredText} <=`)
         return this.getLogHover(hoveredText)

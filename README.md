@@ -5,7 +5,7 @@
 [![Visual Studio Marketplace Downloads)][MarketplaceDownloadBadgeImage]][MarketplaceDownloadBadgeImageLink]
 [![Open VSX Downloads][openVsxDownloadBadgeImage]][openVsxDownloadBadgeImageLink]
 
-[openHAB](http://www.openhab.org) is a vendor and techology agnostic open source automation software for your home. This [Visual Studio Code](https://code.visualstudio.com) extension allows you to work with openHAB configuration files (like `*.items`, `*.rules`, `*.sitemap` and `*.script`) thanks to the syntax highlighting, code snippets and integrated search.
+[openHAB](http://www.openhab.org) is a vendor and techology agnostic open source automation software for your home. This [Visual Studio Code](https://code.visualstudio.com) extension allows you to work with openHAB configuration files (like `*.items`, `*.rules`, `*.sitemap`, `*.script` and JavaScript automation files `*.js`) thanks to the syntax highlighting, code snippets and integrated search.
 
 The extension is designed with openHAB 2.x in mind - most snippets and design patterns will work in openHAB 2.x
 
@@ -25,6 +25,7 @@ The extension is designed with openHAB 2.x in mind - most snippets and design pa
 - Add Items to Sitemap with one click
 - Get live Item states while hovering over item names in the Editor
 - Extract item states from `events.log` / `openhab.log`: hovering a variable like `geschlossenPrev` shows its value when found in the log with the format `geschlossenPrev="true"`
+- Hover tooltips for item names in JavaScript automation files (`.js`) and sitemap files (`.sitemap`), including `item=<name>` references
 - Show human readable `Thread::sleep()` times while hovering
 
 ### Log Hover Configuration
