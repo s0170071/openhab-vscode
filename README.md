@@ -9,6 +9,18 @@
 
 The extension is designed with openHAB 2.x in mind - most snippets and design patterns will work in openHAB 2.x
 
+## This branch (`release/1.0.2`) vs. `main`
+
+This branch is **not** part of the official `openhab/openhab-vscode` history. It's an integration build that combines three feature branches which were submitted upstream as separate, independent pull requests (upstream maintainers asked for them to stay split, so they will **not** be merged together there). Compared to `main`, this branch adds:
+
+| Feature                                      | Source PR                                                  | What it does                                                                                                                                           |
+| -------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Log-based hover state extraction             | [#381](https://github.com/openhab/openhab-vscode/pull/381) | Hovering a variable (e.g. a rule-local name) that isn't a known Item falls back to searching `events.log` / `openhab.log` for its last value.          |
+| JS / sitemap hover tooltips + syntax updates | [#382](https://github.com/openhab/openhab-vscode/pull/382) | Hovering `item=<name>` in `.js` automation scripts or `.sitemap` files shows the live Item state; sitemap widget syntax highlighting improved.         |
+| Item hover reference navigation              | [#383](https://github.com/openhab/openhab-vscode/pull/383) | Hovering an Item shows where it's **defined** and where it's **referenced** (Things, Rules, Sitemaps, Scripts), with jump-to and back-to-origin links. |
+
+Everything else (syntax highlighting, snippets, tree views, REST API integration, etc.) is unchanged from `main`.
+
 ## Features
 
 - Syntax highlighting for the [openHAB DSL](https://www.openhab.org/docs/configuration/) (rules, items, scripts and sitemaps).
@@ -38,11 +50,35 @@ The extension can search openHAB log files to enhance hover tooltips for values 
 | `openhab.log.eventsLogPath`  | `/opt/openhab/userdata/logs/events.log`  | Path to the openHAB events log      |
 | `openhab.log.openhabLogPath` | `/opt/openhab/userdata/logs/openhab.log` | Path to the openHAB application log |
 
+### Item Hover Reference Navigation Configuration
+
+Controls what's shown when hovering an Item name (definition location, and where it's referenced across Things/Rules/Sitemaps/Scripts):
+
+| Setting                                  | Default | Description                                                                                                                  |
+| ---------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `openhab.hover.showItemDefinition`       | `true`  | Show the `.items` file location (under an `items/` folder) where the hovered item is defined.                                |
+| `openhab.hover.showThingsReferences`     | `true`  | Show `.things` files (under a `things/` folder) that reference the hovered item.                                             |
+| `openhab.hover.showRuleReferences`       | `true`  | Show `.rules` files (under a `rules/` folder) that reference the hovered item.                                               |
+| `openhab.hover.showSitemapReferences`    | `true`  | Show `.sitemap` files (under a `sitemaps/` folder) that reference the hovered item (`item=<name>`).                          |
+| `openhab.hover.showScriptReferences`     | `true`  | Show `.js` automation scripts (under an `automation/` folder) that reference the hovered item.                               |
+| `openhab.hover.showLogSearch`            | `true`  | Fall back to searching `events.log` / `openhab.log` for a hovered expression's latest state when it isn't a known REST item. |
+| `openhab.hover.maxReferencesPerCategory` | `10`    | Maximum number of file locations shown per reference category (definitions, rules, sitemaps, scripts).                       |
+
 ![openHAB2 code snippets](docs/images/openhab-demo.gif)
 
 ## Configuration
 
 Learn more about the configuration options in our [documentation](https://github.com/openhab/openhab-vscode/blob/master/docs/USAGE.md) on github.
+
+## Installing this build
+
+This branch isn't published to the Marketplace or Open VSX. A pre-built package, `openhab-1.0.2.vsix`, is committed at the root of this branch. To install it:
+
+```sh
+code --install-extension openhab-1.0.2.vsix
+```
+
+Or in VS Code: open the Extensions view → `...` menu → **Install from VSIX...** → select `openhab-1.0.2.vsix`.
 
 ## Things Explorer demo
 
