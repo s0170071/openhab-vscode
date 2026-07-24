@@ -241,13 +241,21 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
 
         disposables.push(
             vscode.languages.registerHoverProvider(
-                { language: 'openhab', scheme: 'file' },
+                [
+                    { language: 'openhab', scheme: 'file' },
+                    { language: 'javascript', scheme: 'file' },
+                    { pattern: '**/*.sitemap', scheme: 'file' },
+                ],
                 {
                     provideHover(document, position, token) {
                         const docLine = document.lineAt(position.line)
                         const hoveredLine = docLine.text.slice(docLine.firstNonWhitespaceCharacterIndex)
 
-                        const hoveredRange = document.getWordRangeAtPosition(position)
+                        // Try to match a key="value" / key=value pair first (e.g. item=FF_Bath_Light in
+                        // sitemap files), then fall back to matching a plain word.
+                        const hoveredRange =
+                            document.getWordRangeAtPosition(position, /\w+=(?:"[^"]*"|'[^']*'|\S+)/) ||
+                            document.getWordRangeAtPosition(position)
                         const hoveredText = document.getText(hoveredRange)
 
                         // let matchresult = hoveredText.match(/(\w+){1}/gm)
