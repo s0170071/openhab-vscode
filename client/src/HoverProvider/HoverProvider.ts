@@ -1,4 +1,4 @@
-import { Hover, MarkdownString, workspace } from 'vscode'
+import { Hover, MarkdownString, Uri, workspace } from 'vscode'
 
 import * as utils from '../Utils/Utils'
 import { ConfigManager } from '../Utils/ConfigManager'
@@ -31,11 +31,11 @@ export class HoverProvider {
     private referenceSearch: ReferenceSearchProvider = new ReferenceSearchProvider()
 
     /**
-     * Tracks, per item name, which reference location was last jumped to,
-     * so it can be highlighted the next time the reference list is shown.
-     * Keyed by item name, valued by the reference's uri/line key (see referenceKey()).
+     * Remembers, per item name, the location the user was at right before jumping to a
+     * reference for that item. Lets a "Back to ..." link be shown at the destination,
+     * so the user can look something up and then jump straight back to continue editing.
      */
-    private lastViewedReference = new Map<string, string>()
+    private jumpBackOrigin = new Map<string, { uri: string; line: number }>()
 
     /**
      * Regex for Thread::sleep() expression
@@ -245,9 +245,15 @@ export class HoverProvider {
         const showSitemaps = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showSitemapReferences) as boolean
         const showScripts = ConfigManager.get(OH_CONFIG_PARAMETERS.hover.showScriptReferences) as boolean
 
-        if (!showDefinitions && !showThings && !showRules && !showSitemaps && !showScripts) return Promise.resolve(null)
+        const jumpBackLink = this.getJumpBackLink(hoveredText, currentUri, currentLine)
 
-        if (!workspace.workspaceFolders || workspace.workspaceFolders.length === 0) return Promise.resolve(null)
+        if (!showDefinitions && !showThings && !showRules && !showSitemaps && !showScripts) {
+            return Promise.resolve(jumpBackLink ? new MarkdownString(jumpBackLink) : null)
+        }
+
+        if (!workspace.workspaceFolders || workspace.workspaceFolders.length === 0) {
+            return Promise.resolve(jumpBackLink ? new MarkdownString(jumpBackLink) : null)
+        }
 
         return this.referenceSearch
             .findReferences(hoveredText)
@@ -255,6 +261,11 @@ export class HoverProvider {
                 const max = (ConfigManager.get(OH_CONFIG_PARAMETERS.hover.maxReferencesPerCategory) as number) || 10
                 const resultText = new MarkdownString()
                 let any = false
+
+                if (jumpBackLink) {
+                    resultText.appendMarkdown(jumpBackLink)
+                    any = true
+                }
 
                 if (showDefinitions)
                     any =
@@ -322,8 +333,6 @@ export class HoverProvider {
 
     /**
      * Appends a capped, clickable list of file locations for one reference category.
-     * The reference that was last jumped to for this item (if any) is highlighted,
-     * unless it's the very location currently being hovered over.
      *
      * @returns **true** if the category had at least one reference (and something was appended)
      */
@@ -352,41 +361,46 @@ export class HoverProvider {
     }
 
     /**
-     * Builds a unique key identifying a file location, used to detect the last-viewed reference.
+     * Records where the user was hovering right before jumping to a reference for the given
+     * item, so a "Back to ..." link can be shown once they're done looking something up at
+     * the destination and want to return to continue editing.
+     *
+     * @param itemName The item name the jump was made for
+     * @param uri The uri (as string) of the file the user was hovering over before jumping
+     * @param line The zero-based line number the user was hovering over before jumping
      */
-    private static referenceKey(uri: string, line: number): string {
-        return `${uri}#${line}`
+    public recordJumpOrigin(itemName: string, uri: string, line: number): void {
+        this.jumpBackOrigin.set(itemName, { uri, line })
     }
 
     /**
-     * Records that the given reference was just jumped to for the given item,
-     * so it can be highlighted the next time this item's reference list is shown.
-     *
-     * @param itemName The item name the jumped-to reference belongs to
-     * @param uri The uri (as string) of the file that was jumped to
-     * @param line The zero-based line number that was jumped to
+     * Builds a "Back to ..." command-link pointing to the location the user was at right
+     * before they last jumped away from it (via a reference link) for this item.
+     * Returns null if there's no recorded origin, or if it's the location currently being hovered over.
      */
-    public markReferenceViewed(itemName: string, uri: string, line: number): void {
-        this.lastViewedReference.set(itemName, HoverProvider.referenceKey(uri, line))
+    private getJumpBackLink(itemName: string, currentUri?: string, currentLine?: number): string | null {
+        const origin = this.jumpBackOrigin.get(itemName)
+        if (!origin) return null
+        if (origin.uri === currentUri && origin.line === currentLine) return null
+
+        const relativePath = workspace.asRelativePath(Uri.parse(origin.uri), false)
+        const args = encodeURIComponent(JSON.stringify([origin.uri, origin.line]))
+
+        return `↩ [Back to ${relativePath}:${origin.line + 1}](command:openhab.command.hover.openLocation?${args})\n\n---\n\n`
     }
 
     /**
      * Builds a Markdown command-link that jumps to the given file location.
-     * If this location was the last one jumped to for the given item, it's highlighted -
-     * unless it's the location currently being hovered over, since that's just where the
-     * cursor already is, not a location one would jump to.
+     * Also passes along the location currently being hovered over, so that once clicked, it can
+     * be remembered as the place to jump back to (see recordJumpOrigin() / getJumpBackLink()).
      */
     private locationLink(ref: FileLocationRef, itemName: string, currentUri?: string, currentLine?: number): string {
         const relativePath = workspace.asRelativePath(ref.uri, false)
-        const uriString = ref.uri.toString()
-        const args = encodeURIComponent(JSON.stringify([uriString, ref.line, itemName]))
-        const link = `[${relativePath}:${ref.line + 1}](command:openhab.command.hover.openLocation?${args})`
+        const args = encodeURIComponent(
+            JSON.stringify([ref.uri.toString(), ref.line, itemName, currentUri, currentLine])
+        )
 
-        const isCurrentOccurrence = currentUri === uriString && currentLine === ref.line
-        const isLastViewed =
-            !isCurrentOccurrence &&
-            this.lastViewedReference.get(itemName) === HoverProvider.referenceKey(uriString, ref.line)
-        return isLastViewed ? `**${link}** _(last viewed)_` : link
+        return `[${relativePath}:${ref.line + 1}](command:openhab.command.hover.openLocation?${args})`
     }
 
     /**

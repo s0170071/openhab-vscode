@@ -242,14 +242,16 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
         disposables.push(
             vscode.commands.registerCommand(
                 'openhab.command.hover.openLocation',
-                (uriString: string, line: number, itemName?: string) => {
+                (uriString: string, line: number, itemName?: string, originUri?: string, originLine?: number) => {
                     const uri = vscode.Uri.parse(uriString)
                     return vscode.window.showTextDocument(uri).then((editor) => {
                         const range = new vscode.Range(line, 0, line, 0)
                         editor.revealRange(range)
                         editor.selection = new vscode.Selection(range.start, range.start)
 
-                        if (itemName) ohHoverProvider.markReferenceViewed(itemName, uriString, line)
+                        if (itemName && originUri !== undefined && originLine !== undefined) {
+                            ohHoverProvider.recordJumpOrigin(itemName, originUri, originLine)
+                        }
                     })
                 }
             )
