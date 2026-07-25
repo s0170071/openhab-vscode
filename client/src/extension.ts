@@ -270,14 +270,30 @@ async function init(disposables: vscode.Disposable[], context: vscode.ExtensionC
                         const hoveredLine = docLine.text.slice(docLine.firstNonWhitespaceCharacterIndex)
 
                         // Try to match a key="value" / key=value pair first (e.g. item=FF_Bath_Light in
-                        // sitemap files), then fall back to matching a plain identifier. Restricting the
-                        // fallback to identifier characters ensures that hovering right next to a following
-                        // character like `{`, `[` or `(` (with no whitespace in between) still resolves to
-                        // just the item name instead of an undefined range (which would otherwise make
-                        // VS Code fall back to the entire document's text).
-                        const hoveredRange =
-                            document.getWordRangeAtPosition(position, /\w+=(?:"[^"]*"|'[^']*'|\S+)/) ||
-                            document.getWordRangeAtPosition(position, /[A-Za-z0-9_]+/)
+                        // sitemap files). The unquoted value alternative is restricted to identifier
+                        // characters (`\w+`) instead of `\S+`, otherwise it would greedily swallow a
+                        // directly-following character like `{` (e.g. `item=gEHZStatistik{`).
+                        // HoverProvider.getHover() extracts the actual value from this key=value text
+                        // itself, so it is passed straight through without running it through the
+                        // single-word sanity check below (which would otherwise always reject it, since
+                        // "key" and "value" are two separate `\w+` matches).
+                        const kvRange = document.getWordRangeAtPosition(position, /\w+=(?:"[^"]*"|'[^']*'|\w+)/)
+
+                        if (kvRange) {
+                            return ohHoverProvider.getHover(
+                                document.getText(kvRange),
+                                hoveredLine,
+                                document.uri.toString(),
+                                position.line
+                            )
+                        }
+
+                        // Fall back to matching a plain identifier. Restricting word detection to
+                        // identifier characters ensures that hovering right next to a following
+                        // character like `{`, `[` or `(` (with no whitespace in between) still resolves
+                        // to just the item name instead of an undefined range (which would otherwise
+                        // make VS Code fall back to the entire document's text).
+                        const hoveredRange = document.getWordRangeAtPosition(position, /[A-Za-z0-9_]+/)
 
                         if (!hoveredRange) {
                             return null
