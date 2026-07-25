@@ -51,7 +51,7 @@ export class HoverProvider {
 
         // If hoveredText is a key=value pair (e.g. item=FF_Bath_Light or label="My Label"),
         // extract the value for item lookup so sitemap/rules references like item=X work correctly.
-        const kvMatch = hoveredText.match(/^\w+=(?:"([^"]*)"|'([^']*)'|(\S+))$/)
+        const kvMatch = hoveredText.match(/^\w+=(?:"([^"]*)"|'([^']*)'|(\w+))$/)
         const lookupText = kvMatch ? (kvMatch[1] ?? kvMatch[2] ?? kvMatch[3]) : hoveredText
 
         console.debug(`Checking if => ${lookupText} <= is a known Item now`)
