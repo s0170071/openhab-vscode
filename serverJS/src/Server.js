@@ -6,6 +6,7 @@ const {
     ProposedFeatures,
     DidChangeConfigurationNotification,
 } = require('vscode-languageserver')
+const { TextDocument } = require('vscode-languageserver-textdocument')
 
 const { validateTextDocument } = require('./DocumentValidation/DocumentValidator')
 
@@ -26,7 +27,7 @@ class Server {
         this.connection.onDidChangeConfiguration(this.configurationChanged.bind(this))
 
         // documents handler
-        this.documents = new TextDocuments()
+        this.documents = new TextDocuments(TextDocument)
 
         // add handlers to documents
         this.documents.onDidOpen(this.documentOpened.bind(this))

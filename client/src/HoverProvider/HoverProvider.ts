@@ -1,8 +1,6 @@
 import { Hover, MarkdownString } from 'vscode'
 
 import * as utils from '../Utils/Utils'
-import { ConfigManager } from '../Utils/ConfigManager'
-import { OH_CONFIG_PARAMETERS } from '../Utils/types'
 import { LogSearchProvider, LogSearchResult } from './LogSearchProvider'
 
 /**
@@ -89,20 +87,9 @@ export class HoverProvider {
      */
     private getRestItemHover(hoveredText: string): Thenable<Hover> {
         return new Promise((resolve, reject) => {
-            const url = utils.getHost() + `/rest/items/${hoveredText}`
-            try {
-                const sanitizedUrl = new URL(url)
-                sanitizedUrl.username = ''
-                sanitizedUrl.password = ''
-                console.log(`Requesting => ${sanitizedUrl.toString()} <= now`)
-            } catch {
-                console.log('Requesting openHAB item now')
-            }
-            const headers: Record<string, string> = {}
-
-            if (ConfigManager.tokenAuthAvailable()) {
-                headers['X-OPENHAB-TOKEN'] = ConfigManager.get(OH_CONFIG_PARAMETERS.connection.authToken) as string
-            }
+            const url = utils.getHost(false) + `/rest/items/${hoveredText}`
+            console.log(`Requesting => ${url} <= now`)
+            const headers = utils.getAuthHeaders()
 
             fetch(url, { headers })
                 .then((response) => {
@@ -219,13 +206,9 @@ export class HoverProvider {
      * @returns A Promise that resolves to **true** when update was successful, **false** otherwise
      */
     public updateItems(): Promise<boolean> {
-        const headers: Record<string, string> = {}
+        const headers = utils.getAuthHeaders()
 
-        if (ConfigManager.tokenAuthAvailable()) {
-            headers['X-OPENHAB-TOKEN'] = ConfigManager.get(OH_CONFIG_PARAMETERS.connection.authToken) as string
-        }
-
-        return fetch(`${utils.getHost()}/rest/items`, { headers })
+        return fetch(`${utils.getHost(false)}/rest/items`, { headers })
             .then((response) => {
                 if (!response.ok) throw Object.assign(new Error(response.statusText), { status: response.status })
                 return response.json() as Promise<any[]>
